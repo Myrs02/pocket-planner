@@ -2,12 +2,20 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <!-- Stop browsers from serving stale HTML -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React</title>
+    <title>Pocket Planner</title>
+
+    <!-- Use a relative path so it works under /pocket-planner/ on GitHub Pages -->
+    <link rel="icon" type="image/svg+xml" href="./vite.svg" />
   </head>
   <body>
     <div id="root"></div>
+    <!-- This dev-time entry gets replaced in the build; leave as-is -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
