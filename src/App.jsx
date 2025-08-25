@@ -3,9 +3,18 @@ import React, { useEffect, useMemo, useState } from 'react'
 // simple localStorage hook
 function useLocalStorage(key, initialValue) {
   const [value, setValue] = useState(() => {
-    try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : initialValue } catch { return initialValue }
+    try {
+      const raw = localStorage.getItem(key)
+      return raw ? JSON.parse(raw) : initialValue
+    } catch {
+      return initialValue
+    }
   })
-  useEffect(() => { try { localStorage.setItem(key, JSON.stringify(value)) } catch {} }, [key, value])
+  useEffect(() => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value))
+    } catch {}
+  }, [key, value])
   return [value, setValue]
 }
 
@@ -16,25 +25,58 @@ const priorities = [
 ]
 
 export default function App() {
+  // theme: 'system' | 'light' | 'dark'
+  const [theme, setTheme] = useLocalStorage('pp_theme', 'system')
+
+  // Apply theme by setting data-theme on <html>; 'system' removes override and lets CSS @media apply
+  useEffect(() => {
+    const root = document.documentElement
+    if (theme === 'system') {
+      root.removeAttribute('data-theme')
+    } else {
+      root.setAttribute('data-theme', theme)
+    }
+  }, [theme])
+
+  // cycle: light → dark → system → light...
+  function cycleTheme() {
+    setTheme(t => (t === 'light' ? 'dark' : t === 'dark' ? 'system' : 'light'))
+  }
+  const themeIcon = theme === 'light' ? '☀️' : theme === 'dark' ? '🌙' : '💻'
+  const themeLabel = `Theme: ${theme}. Click to switch`
+
   return (
     <div>
       <div className="header">
         <div className="container">
-          <div className="title">
-            <div className="logo">PP</div>
-            <div>
-              <div style={{fontWeight:600}}>Pocket Planner</div>
-              <div className="small">Step 1: Tasks — local-first.</div>
+          <div className="title" style={{ justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div className="logo">PP</div>
+              <div>
+                <div style={{ fontWeight: 600 }}>Pocket Planner</div>
+                <div className="small">Step 1: Tasks — local-first.</div>
+              </div>
             </div>
+
+            {/* Theme toggle (Light → Dark → System) */}
+            <button
+              type="button"
+              className="button ghost"
+              onClick={cycleTheme}
+              aria-label={themeLabel}
+              title={themeLabel}
+            >
+              {themeIcon} {theme}
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="container" style={{paddingTop:16}}>
+      <div className="container" style={{ paddingTop: 16 }}>
         <TasksPane />
       </div>
 
-      <div className="container small" style={{textAlign:'center', padding:'24px 0'}}>
+      <div className="container small" style={{ textAlign: 'center', padding: '24px 0' }}>
         Next we’ll add Notes & Expenses.
       </div>
     </div>
@@ -72,7 +114,7 @@ function TasksPane() {
   }
 
   function toggle(id) {
-    setTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t))
+    setTasks(tasks.map(t => (t.id === id ? { ...t, done: !t.done } : t)))
   }
   function remove(id) {
     setTasks(tasks.filter(t => t.id !== id))
@@ -92,14 +134,44 @@ function TasksPane() {
     setEditingId(null)
   }
   function saveEdit(id) {
-    setTasks(tasks.map(t => t.id === id ? {
-      ...t,
-      title: (draft.title || '').trim() || t.title,
-      desc: (draft.desc || '').trim(),
-      prio: draft.prio,
-      due: draft.due || null,
-    } : t))
+    setTasks(
+      tasks.map(t =>
+        t.id === id
+          ? {
+              ...t,
+              title: (draft.title || '').trim() || t.title,
+              desc: (draft.desc || '').trim(),
+              prio: draft.prio,
+              due: draft.due || null,
+            }
+          : t
+      )
+    )
     setEditingId(null)
+  }
+
+  // Bulk + backup tools
+  function clearCompleted() {
+    setTasks(tasks.filter(t => !t.done))
+  }
+  function exportJSON() {
+    const blob = new Blob([JSON.stringify(tasks, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'pocket-planner-tasks.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+  function importJSONFile(file) {
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const next = JSON.parse(reader.result)
+        if (Array.isArray(next)) setTasks(next)
+      } catch {}
+    }
+    reader.readAsText(file)
   }
 
   // Keyboard shortcuts while editing: Enter saves (Ctrl+Enter in textarea), Esc cancels
@@ -116,38 +188,54 @@ function TasksPane() {
 
   const visible = useMemo(() => {
     const q = query.toLowerCase()
-    let list = tasks.filter(t =>
-      t.title.toLowerCase().includes(q) || (t.desc || '').toLowerCase().includes(q)
+    let list = tasks.filter(
+      t => t.title.toLowerCase().includes(q) || (t.desc || '').toLowerCase().includes(q)
     )
     if (filter !== 'all') list = list.filter(t => (filter === 'open' ? !t.done : t.done))
     list.sort((a, b) => {
       const dir = sort.dir === 'asc' ? 1 : -1
       switch (sort.by) {
-        case 'due': return dir * ((a.due || '9999-12-31').localeCompare(b.due || '9999-12-31'))
+        case 'due':
+          return dir * ((a.due || '9999-12-31').localeCompare(b.due || '9999-12-31'))
         case 'priority': {
           const rank = { high: 3, medium: 2, low: 1 }
           return dir * (rank[a.prio] - rank[b.prio])
         }
-        default: return dir * (a.createdAt - b.createdAt)
+        default:
+          return dir * (a.createdAt - b.createdAt)
       }
     })
     return list
   }, [tasks, query, filter, sort])
 
-  const completion = Math.round((tasks.filter(t => t.done).length / Math.max(tasks.length, 1)) * 100)
+  const completion = Math.round(
+    (tasks.filter(t => t.done).length / Math.max(tasks.length, 1)) * 100
+  )
+  const todayMidnight = new Date(new Date().setHours(0, 0, 0, 0))
 
   return (
     <div className="card">
       <div className="card-head">
         <h2>Tasks</h2>
         <div className="row">
-          <input className="input" placeholder="Search…" value={query} onChange={e => setQuery(e.target.value)} style={{ width: 160 }} />
+          {/* Search / Filter / Sort controls */}
+          <input
+            className="input"
+            placeholder="Search…"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            style={{ width: 160 }}
+          />
           <select className="select" value={filter} onChange={e => setFilter(e.target.value)}>
             <option value="all">All</option>
             <option value="open">Open</option>
             <option value="done">Done</option>
           </select>
-          <button className="button ghost" onClick={() => setSort(s => ({ ...s, dir: s.dir === 'asc' ? 'desc' : 'asc' }))}>
+          <button
+            type="button"
+            className="button ghost"
+            onClick={() => setSort(s => ({ ...s, dir: s.dir === 'asc' ? 'desc' : 'asc' }))}
+          >
             {sort.dir === 'asc' ? 'Asc' : 'Desc'}
           </button>
           <select className="select" value={sort.by} onChange={e => setSort(s => ({ ...s, by: e.target.value }))}>
@@ -155,6 +243,40 @@ function TasksPane() {
             <option value="due">Due date</option>
             <option value="priority">Priority</option>
           </select>
+
+          {/* Bulk + backup controls */}
+          <button
+            type="button"
+            className="button ghost"
+            onClick={clearCompleted}
+            title="Remove all completed tasks"
+            aria-label="Remove all completed tasks"
+          >
+            Clear completed
+          </button>
+          <button
+            type="button"
+            className="button ghost"
+            onClick={exportJSON}
+            title="Download tasks as JSON"
+            aria-label="Download tasks as JSON"
+          >
+            Export
+          </button>
+          <label
+            className="button ghost"
+            title="Import tasks from JSON"
+            style={{ cursor: 'pointer' }}
+            aria-label="Import tasks from JSON"
+          >
+            Import
+            <input
+              type="file"
+              accept="application/json"
+              style={{ display: 'none' }}
+              onChange={e => e.target.files?.[0] && importJSONFile(e.target.files[0])}
+            />
+          </label>
         </div>
       </div>
 
@@ -163,7 +285,12 @@ function TasksPane() {
         <div className="row" style={{ gap: 12, alignItems: 'flex-end', marginBottom: 12, flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 300px' }}>
             <label className="small">Title</label>
-            <input className="input" value={title} onChange={e => setTitle(e.target.value)} placeholder="What needs doing?" />
+            <input
+              className="input"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="What needs doing?"
+            />
           </div>
           <div style={{ flex: '1 1 100%', marginTop: 8 }}>
             <label className="small">Description</label>
@@ -179,14 +306,20 @@ function TasksPane() {
           <div>
             <label className="small">Priority</label>
             <select className="select" value={prio} onChange={e => setPrio(e.target.value)}>
-              {priorities.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+              {priorities.map(p => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
             </select>
           </div>
           <div>
             <label className="small">Due</label>
             <input className="input" type="date" value={due} onChange={e => setDue(e.target.value)} />
           </div>
-          <button className="button" onClick={addTask}>Add</button>
+          <button type="button" className="button" onClick={addTask}>
+            Add
+          </button>
         </div>
 
         {/* Task List */}
@@ -194,19 +327,43 @@ function TasksPane() {
           {visible.map(t => (
             <li key={t.id} className="item">
               <div className="row" style={{ alignItems: 'flex-start', flex: 1 }}>
-                <button className="button ghost" onClick={() => toggle(t.id)}>{t.done ? '✓' : '○'}</button>
+                <button
+                  type="button"
+                  className="button ghost"
+                  onClick={() => toggle(t.id)}
+                  aria-label={t.done ? 'Mark as not done' : 'Mark as done'}
+                  title={t.done ? 'Mark as not done' : 'Mark as done'}
+                >
+                  {t.done ? '✓' : '○'}
+                </button>
 
                 {/* View mode */}
                 {editingId !== t.id && (
                   <div style={{ flex: 1 }}>
                     <div className="row" style={{ alignItems: 'center' }}>
-                      <p style={{ margin: 0, textDecoration: t.done ? 'line-through' : 'none', color: t.done ? '#64748b' : 'inherit' }}>
+                      <p
+                        style={{
+                          margin: 0,
+                          textDecoration: t.done ? 'line-through' : 'none',
+                          color: t.done ? '#64748b' : 'inherit',
+                        }}
+                      >
                         {t.title}
                       </p>
-                      <span className={`badge ${t.prio === 'high' ? 'danger' : t.prio === 'medium' ? 'neutral' : 'outline'}`} style={{ textTransform: 'capitalize' }}>
+                      <span
+                        className={`badge ${
+                          t.prio === 'high' ? 'danger' : t.prio === 'medium' ? 'neutral' : 'outline'
+                        }`}
+                        style={{ textTransform: 'capitalize' }}
+                      >
                         {t.prio}
                       </span>
                       {t.due && <span className="badge outline">Due {t.due}</span>}
+                      {t.due && !t.done && new Date(t.due) < todayMidnight && (
+                        <span className="badge danger" title="This task is overdue">
+                          Overdue
+                        </span>
+                      )}
                     </div>
 
                     {t.desc && (
@@ -214,7 +371,9 @@ function TasksPane() {
                         {t.desc}
                       </p>
                     )}
-                    <p className="small" style={{ marginTop: 4 }}>Added {new Date(t.createdAt).toLocaleString()}</p>
+                    <p className="small" style={{ marginTop: 4 }}>
+                      Added {new Date(t.createdAt).toLocaleString()}
+                    </p>
                   </div>
                 )}
 
@@ -251,7 +410,11 @@ function TasksPane() {
                             onChange={e => setDraft(d => ({ ...d, prio: e.target.value }))}
                             onKeyDown={e => handleDraftKeyDown(e, t.id)}
                           >
-                            {priorities.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                            {priorities.map(p => (
+                              <option key={p.value} value={p.value}>
+                                {p.label}
+                              </option>
+                            ))}
                           </select>
                         </div>
                         <div>
@@ -266,8 +429,12 @@ function TasksPane() {
                         </div>
                       </div>
                       <div className="row" style={{ gap: 8 }}>
-                        <button className="button" onClick={() => saveEdit(t.id)}>Save</button>
-                        <button className="button ghost" onClick={cancelEdit}>Cancel</button>
+                        <button type="button" className="button" onClick={() => saveEdit(t.id)}>
+                          Save
+                        </button>
+                        <button type="button" className="button ghost" onClick={cancelEdit}>
+                          Cancel
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -278,6 +445,7 @@ function TasksPane() {
               <div className="row">
                 {editingId !== t.id && (
                   <button
+                    type="button"
                     className="button ghost"
                     onClick={() => startEdit(t)}
                     aria-label="Edit task"
@@ -286,20 +454,34 @@ function TasksPane() {
                     ✏️
                   </button>
                 )}
-                <button className="button ghost" onClick={() => remove(t.id)}>🗑</button>
+                <button
+                  type="button"
+                  className="button ghost"
+                  onClick={() => remove(t.id)}
+                  aria-label="Delete task"
+                  title="Delete"
+                >
+                  🗑
+                </button>
               </div>
             </li>
           ))}
 
           {visible.length === 0 && (
-            <li className="small" style={{ textAlign: 'center', padding: 16 }}>No tasks yet.</li>
+            <li className="small" style={{ textAlign: 'center', padding: 16 }}>
+              No tasks yet.
+            </li>
           )}
         </ul>
 
         <div style={{ marginTop: 12 }}>
           <div className="small">Completion</div>
-          <div className="progress"><div style={{ width: `${completion}%` }} /></div>
-          <div className="small" style={{ marginTop: 4 }}>{completion}% done</div>
+          <div className="progress">
+            <div style={{ width: `${completion}%` }} />
+          </div>
+          <div className="small" style={{ marginTop: 4 }} aria-live="polite">
+            {completion}% done
+          </div>
         </div>
       </div>
     </div>
