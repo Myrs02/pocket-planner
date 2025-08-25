@@ -1,32 +1,155 @@
+/* ===========================
+   THEME PALETTE (Light base)
+   =========================== */
+:root {
+  --brand: #0f172a;      /* primary accent (buttons, progress) */
+  --brand-bg: #f8fafc;   /* page background */
+  --text: #0f172a;       /* main text color */
+  --muted: #64748b;      /* subtle text */
+  --border: #e2e8f0;     /* borders/dividers */
+  --card: #ffffff;       /* card background */
+
+  --danger-bg: #fee2e2;
+  --danger-border: #fecaca;
+  --danger-text: #991b1b;
+}
+
+/* Respect system dark mode automatically */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --brand: #38bdf8;
+    --brand-bg: #0b1220;
+    --text: #e5e7eb;
+    --muted: #94a3b8;
+    --border: #334155;
+    --card: #111827;
+
+    --danger-bg: #7f1d1d33;
+    --danger-border: #7f1d1d;
+    --danger-text: #fecaca;
+  }
+}
+
+/* Manual override via <html data-theme="..."> */
+[data-theme="light"] {
+  --brand: #0f172a;
+  --brand-bg: #f8fafc;
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --card: #ffffff;
+
+  --danger-bg: #fee2e2;
+  --danger-border: #fecaca;
+  --danger-text: #991b1b;
+}
+[data-theme="dark"] {
+  --brand: #38bdf8;
+  --brand-bg: #0b1220;
+  --text: #e5e7eb;
+  --muted: #94a3b8;
+  --border: #334155;
+  --card: #111827;
+
+  --danger-bg: #7f1d1d33;
+  --danger-border: #7f1d1d;
+  --danger-text: #fecaca;
+}
+
+/* ========== Base reset ========== */
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
-body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; background: #f8fafc; color: #0f172a; }
-.container { max-width: 900px; margin: 0 auto; padding: 24px; }
-.header { position: sticky; top: 0; background: rgba(255,255,255,0.85); backdrop-filter: blur(6px); border-bottom: 1px solid #e2e8f0; }
-.title { display: flex; align-items: center; gap: 12px; padding: 12px 0; }
-.logo { width: 36px; height: 36px; border-radius: 12px; background: #0f172a; color: #fff; display: grid; place-items: center; font-weight: 700; }
-.card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; }
-.card-head { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid #e2e8f0; }
-.card-body { padding: 16px; }
-.input, .select { 
-  width: 100%; 
-  padding: 10px 12px; 
-  border: 1px solid #e2e8f0; 
-  border-radius: 10px; 
-  background: #fff; 
-  color: #0f172a;   /* 👈 new line so text shows dark */
-  font-size: 14px;  /* 👈 optional, makes it easier to read */
+body {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  background: var(--brand-bg);
+  color: var(--text);
 }
-.button { padding: 10px 12px; border-radius: 10px; border: 1px solid #0f172a; background: #0f172a; color: #fff; cursor: pointer; }
-.button.ghost { background: #fff; color: #0f172a; }
-.row { display: flex; gap: 8px; align-items: center; }
-.small { font-size: 12px; color: #64748b; }
-.progress { height: 8px; background:#e2e8f0; border-radius:999px; overflow:hidden; }
-.progress > div { height:100%; background:#0f172a; }
-.list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
-.item { display:flex; justify-content:space-between; gap:12px; border:1px solid #e2e8f0; border-radius:16px; padding:12px; }
-.badge { display:inline-block; padding:2px 8px; border-radius:999px; border:1px solid #e2e8f0; font-size:12px; color:#334155; }
-.badge.danger { background:#fee2e2; border-color:#fecaca; color:#991b1b; }
-.badge.neutral { background:#f1f5f9; }
-.badge.outline { background:#fff; }
 
+/* ========== Layout ========== */
+.container { max-width: 900px; margin: 0 auto; padding: 24px; }
+
+.header {
+  position: sticky; top: 0;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--border);
+}
+[data-theme="dark"] .header { background: rgba(17,24,39,0.85); }
+
+.title { display: flex; align-items: center; gap: 12px; padding: 12px 0; }
+.logo {
+  width: 36px; height: 36px; border-radius: 12px;
+  background: var(--brand); color: #fff;
+  display: grid; place-items: center; font-weight: 700;
+}
+
+/* ========== Card ========== */
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; }
+.card-head { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--border); }
+.card-body { padding: 16px; }
+
+/* ========== Inputs & selects ========== */
+.input, .select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 14px;
+}
+textarea.input { resize: vertical; }
+
+/* ========== Buttons ========== */
+.button {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--brand);
+  background: var(--brand);
+  color: #fff;
+  cursor: pointer;
+}
+.button.ghost { background: var(--card); color: var(--brand); }
+
+/* ========== Utilities ========== */
+.row { display: flex; gap: 8px; align-items: center; }
+.small { font-size: 12px; color: var(--muted); }
+
+/* ========== Progress ========== */
+.progress {
+  height: 8px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress > div { height: 100%; background: var(--brand); }
+
+/* ========== List / Items ========== */
+.list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.item {
+  display: flex; justify-content: space-between; gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 12px;
+}
+
+/* ========== Badges ========== */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: #334155;
+}
+[data-theme="dark"] .badge { color: var(--text); }
+.badge.danger { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
+.badge.neutral { background: #f1f5f9; }
+[data-theme="dark"] .badge.neutral { background: #1f2937; }
+.badge.outline { background: var(--card); }
+
+/* ========== Focus styles (keyboard) ========== */
+.button:focus, .input:focus, .select:focus, textarea.input:focus {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
